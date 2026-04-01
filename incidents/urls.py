@@ -7,6 +7,6 @@ router.register(r'incident', IncidentViewset, basename = 'incident')
 router.register(r'incidentreport', IncidentReportViewset, basename = 'incidentreport')
 
 urlpatterns = [
-  path('', include(router.urls)),
+  path('', include(router.urls))
 ]
 
