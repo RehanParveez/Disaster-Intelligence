@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from incidents.models import Incident, IncidentReport, IncidentPriorRecord
+from incidents.models import Incident, IncidentReport, IncidentGroup
 
 class IncidentSerializer1(serializers.ModelSerializer):
   class Meta:
@@ -9,7 +9,7 @@ class IncidentSerializer1(serializers.ModelSerializer):
 class IncidentReportSerializer1(serializers.ModelSerializer):
   class Meta:
     model = IncidentReport
-    fields = ['incident', 'reported_by']
+    fields = ['incident']
 
 class IncidentReportCreateSerializer(serializers.Serializer):
   title = serializers.CharField(max_length=60)
@@ -17,8 +17,8 @@ class IncidentReportCreateSerializer(serializers.Serializer):
   location = serializers.CharField(max_length=55)
   severity = serializers.IntegerField()
   
-class IncidentPriorityRecordSerializer1(serializers.ModelSerializer):
+class IncidentGroupSerializer1(serializers.ModelSerializer):
   class Meta:
-    model = IncidentPriorRecord
-    fields = ['incident', 'prev_priority']
+    model = IncidentGroup
+    fields = ['location']
   

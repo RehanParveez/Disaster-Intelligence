@@ -19,7 +19,7 @@ def inc_report(data, user):
   if incid is None:
     incid = Incident.objects.create(title=title, description=description, location=location, severity=severity,
       created_by=user, status = 'active')
-  report = IncidentReport.objects.create(incident=incid, reported_by=user, description=description, location=location)
+  IncidentReport.objects.create(incident=incid, reported_by=user, description=description, location=location)
   return incid
 
 def verifiy_inc(incident_id, user):
@@ -47,6 +47,7 @@ def group_incid(incident_id):
     incid.save()
     group.group_size += 1
     group.save()
+    return group
   else:
     group = IncidentGroup.objects.create(location=incid.location, group_size=1)
     incid.group = group
