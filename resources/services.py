@@ -1,9 +1,13 @@
-from resources.models import Unit, Availability
+from resources.models import Resource, Unit, Availability, Consumption, Inventory
 from django.core.exceptions import ValidationError
 
-def create_reso(data, user):
+def create_unit(data, user):
   print('the service is working')
   res_kind = data.get('kind')
+  res_kind = Resource.objects.filter(id=res_kind)
+  res_kind = res_kind.first()
+  if not res_kind:
+    raise ValidationError('the reso kind is not pres.')
   identifier = data.get('identifier')
   location = data.get('location')
 
@@ -12,15 +16,66 @@ def create_reso(data, user):
   if not identifier:
     raise ValidationError('the identifier is need.')
 
-  reso = Unit.objects.create(kind=res_kind, identifier=identifier, location=location, created_by=user)
+  unit = Unit.objects.create(kind=res_kind, identifier=identifier, location=location, created_by=user)
   availability, created = Availability.objects.get_or_create(res_kind=res_kind, location=location,
       defaults={'total_units': 1, 'avail_units': 1})
   if not created:
     availability.total_units += 1
     availability.avail_units += 1
     availability.save()
-  return reso
+  
+  Consumption.objects.create(unit=unit, inventory=None, change_kind = 'created', prev_avail_units=None,
+    pres_avail_units=1, created_by=user, reason = 'the unit is created')
+  return unit
 
+def allocate_unit(unit_id, invent_id, user, reason=None):
+  unit = Unit.objects.filter(id=unit_id)
+  unit = unit.first()
+  if not unit:
+    raise ValidationError('the unit is not pres.')
+  invent = Inventory.objects.filter(id=invent_id)
+  invent = invent.first()
+  if not invent:
+    raise ValidationError('the invent. is not pres.')
+  avail = Availability.objects.filter(res_kind=unit.kind, location=unit.location)
+  avail = avail.first()
+  if not avail:
+    raise ValidationError('the avail. is not pres.')
+  if avail.avail_units <= 0:
+    raise ValidationError('no unit is avail.')
+  
+  prev_units = avail.avail_units
+  avail.avail_units -= 1
+  avail.save()
+  invent.resources.add(unit)
+  
+  Consumption.objects.create(unit=unit, inventory=invent, change_kind = 'allocated', prev_avail_units=prev_units,
+    pres_avail_units=avail.avail_units, created_by=user, reason=reason)
+  return avail
+
+def return_unit(unit_id, invent_id, user, reason=None):
+    unit = Unit.objects.filter(id=unit_id)
+    unit = unit.first()
+    if not unit:
+      raise ValidationError('the unit is not pres.')
+    invent = Inventory.objects.filter(id=invent_id)
+    invent = invent.first()
+    if not invent:
+      raise ValidationError('the invent is not pres.')
+    avail = Availability.objects.filter(res_kind=unit.kind, location=unit.location)
+    avail = avail.first()
+    if not avail:
+      raise ValidationError('the avail is not pres.')
+  
+    prev_units = avail.avail_units
+    avail.avail_units += 1
+    avail.save()
+    invent.resources.remove(unit)
+
+    Consumption.objects.create(unit=unit, inventory=invent, change_kind = 'returned', prev_avail_units=prev_units,
+      pres_avail_units=avail.avail_units, created_by=user, reason=reason)
+    return avail
+  
 def update_avail(resource_id, data):
   reso = Unit.objects.get(id=resource_id)
   avail = Availability.objects.get(res_kind=reso.kind, location=reso.location)
@@ -34,3 +89,4 @@ def update_avail(resource_id, data):
   avail.avail_units = pres_avail
   avail.save()
   return avail
+
