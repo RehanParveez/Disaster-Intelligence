@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from resources.models import Resource, Unit, Availability
+from resources.models import Resource, Unit, Availability, Inventory
 
 class ResourceSerializer1(serializers.ModelSerializer):
   class Meta:
@@ -15,3 +15,9 @@ class AvailabilitySerializer1(serializers.ModelSerializer):
   class Meta:
     model = Availability
     fields = ['res_kind', 'total_units']
+
+class InventorySerializer1(serializers.ModelSerializer):
+  resources = UnitSerializer1(many=True, read_only=True)
+  class Meta:
+    model = Inventory
+    fields = ['name', 'location']

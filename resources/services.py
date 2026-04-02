@@ -83,10 +83,12 @@ def update_avail(resource_id, data):
   pres_avail = data.get('avail_units')
   if pres_avail is None:
     raise ValidationError('the avail_units are need.')
+  if not str(pres_avail).isdigit():
+    raise ValidationError('the avail_units should be a num.')
+  pres_avail = int(pres_avail)
   if pres_avail > avail.total_units:
     raise ValidationError('the avail units cant be > total units')
 
   avail.avail_units = pres_avail
   avail.save()
   return avail
-

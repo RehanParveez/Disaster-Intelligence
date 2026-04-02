@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from incidents.models import Incident, IncidentReport, IncidentGroup
+from incidents.models import Incident, IncidentReport, IncidentGroup, IncidentPriorRecord
 
 class IncidentSerializer1(serializers.ModelSerializer):
   class Meta:
@@ -21,4 +21,9 @@ class IncidentGroupSerializer1(serializers.ModelSerializer):
   class Meta:
     model = IncidentGroup
     fields = ['location']
+    
+class IncidentPriorityRecordSerializer1(serializers.ModelSerializer):
+  class Meta:
+    model = IncidentPriorRecord
+    fields = ['incident', 'prev_priority']
   

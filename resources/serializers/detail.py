@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from resources.models import Resource, Unit, Availability, Inventory, Consumption
-from resources.serializers.basic import UnitSerializer1, AvailabilitySerializer1
+from resources.serializers.basic import UnitSerializer1, AvailabilitySerializer1, InventorySerializer1
 
 class ResourceSerializer(serializers.ModelSerializer):
   units = UnitSerializer1(many=True, read_only=True)
@@ -20,11 +20,14 @@ class AvailabilitySerializer(serializers.ModelSerializer):
     fields = ['res_kind', 'total_units', 'avail_units', 'location', 'last_updated']
     
 class InventorySerializer(serializers.ModelSerializer):
+  resources = UnitSerializer1(many=True, read_only=True)
   class Meta:
     model = Inventory
     fields = ['name', 'location', 'resources', 'created_at']
     
 class ConsumptionSerializer(serializers.ModelSerializer):
+  unit = UnitSerializer1(read_only=True)
+  inventory = InventorySerializer1(read_only=True)
   class Meta:
     model = Consumption
-    fields = ['unit', 'inventory', 'change_kind', 'prev_avail_units', 'pres_avail_units', 'reason', 'created_at']
+    fields = ['unit', 'inventory', 'change_kind', 'prev_avail_units', 'pres_avail_units', 'reason', 'created_by', 'created_at']

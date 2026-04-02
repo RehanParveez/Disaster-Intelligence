@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from accounts.models import User, Profile
-from accounts.serializers.basic import ProfileSerializer1
+from accounts.serializers.basic import ProfileSerializer1, UserSerializer1
 
 class UserSerializer(serializers.ModelSerializer):
   profile = ProfileSerializer1(read_only=True)
@@ -20,6 +20,7 @@ class UserSerializer(serializers.ModelSerializer):
     return user
 
 class ProfileSerializer(serializers.ModelSerializer):
+  user = UserSerializer1(read_only=True)
   class Meta:
     model = Profile
     fields = ['user', 'location']

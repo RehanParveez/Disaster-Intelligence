@@ -4,6 +4,8 @@ from resources.serializers.detail import ResourceSerializer, UnitSerializer, Ava
 from rest_framework.decorators import action
 from resources.services import create_unit, allocate_unit, return_unit, update_avail
 from rest_framework.response import Response
+from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework.filters import SearchFilter, OrderingFilter
 
 # Create your views here.
 class ResourceViewset(viewsets.ModelViewSet):
@@ -13,6 +15,12 @@ class ResourceViewset(viewsets.ModelViewSet):
 class UnitViewset(viewsets.ModelViewSet):
   serializer_class = UnitSerializer
   queryset = Unit.objects.all()
+  filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
+  
+  # filtering fields
+  search_fields = ['reason']
+  ordering_fields = ['created_at']
+  filterset_fields = ['pres_avail_units', 'change_kind', 'created_at']
   
   def create(self, request):
     unit = create_unit(request.data, request.user)
@@ -58,5 +66,3 @@ class ConsumptionViewSet(viewsets.ModelViewSet):
   serializer_class = ConsumptionSerializer
   queryset = Consumption.objects.all()
   
-  
-

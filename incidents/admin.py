@@ -1,5 +1,5 @@
 from django.contrib import admin
-from incidents.models import Incident, IncidentReport, IncidentGroup, IncidentPriorRecord
+from incidents.models import Incident, IncidentReport, IncidentGroup, IncidentPriorRecord, AllocationDecision
 
 # Register your models here.
 @admin.register(Incident)
@@ -17,4 +17,7 @@ class IncidentGroupAdmin(admin.ModelAdmin):
 @admin.register(IncidentPriorRecord)
 class IncidentPriorRecordAdmin(admin.ModelAdmin):
   list_display = ['incident', 'prev_prior', 'new_prior', 'reason', 'created_at']
-  
+
+@admin.register(AllocationDecision)
+class AllocationDecisionAdmin(admin.ModelAdmin):
+  list_display = ['unit', 'incident', 'allocated_by', 'inventory', 'reason', 'created_at']

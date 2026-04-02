@@ -1,5 +1,6 @@
 from django.db import models
 from accounts.models import User, BaseModel
+from resources.models import Unit, Inventory
 
 # Create your models here.
 class Incident(models.Model):
@@ -44,6 +45,20 @@ class IncidentPriorRecord(models.Model):
   new_prior = models.IntegerField()
   reason = models.CharField(max_length=60)
   created_at = models.DateTimeField(auto_now_add=True)
+  
+  def __str__(self):
+    return self.incident.title
+
+class AllocationDecision(models.Model):
+  unit = models.ForeignKey(Unit, on_delete=models.CASCADE, related_name = 'allocations')
+  incident = models.ForeignKey(Incident, on_delete=models.CASCADE, related_name = 'allocations')
+  allocated_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name = 'allocations_done')
+  inventory = models.ForeignKey(Inventory, on_delete=models.SET_NULL, null=True, blank=True, related_name = 'allocations')
+  reason = models.CharField(max_length=70, blank=True)
+  created_at = models.DateTimeField(auto_now_add=True)
+  
+  class Meta:
+    unique_together = ('unit', 'incident') 
   
   def __str__(self):
     return self.incident.title
