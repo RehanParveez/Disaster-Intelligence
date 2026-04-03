@@ -20,4 +20,4 @@ class InventorySerializer1(serializers.ModelSerializer):
   resources = UnitSerializer1(many=True, read_only=True)
   class Meta:
     model = Inventory
-    fields = ['name', 'location']
+    fields = ['name', 'location', 'resources']

@@ -9,7 +9,7 @@ from rest_framework.response import Response
 from incidents.services.inc_ser import inc_report, verifiy_inc, reject_inc, group_incid, cal_prior
 from resources.services import allocate_unit_serv, return_unit_serv
 from django.db import transaction
-from Disaster_Intelligence.core.permissions import IncidentActorPermission, RolePermission
+from Disaster_Intelligence.core.permissions import FieldOperationPermission, OwnerOrCoordinatoPermission, ReadOnlyPublicPermission
 
 # Create your views here.
 class IncidentViewset(viewsets.ModelViewSet):
@@ -21,28 +21,30 @@ class IncidentViewset(viewsets.ModelViewSet):
   search_fields = ['title', 'description']
   ordering_fields = ['created_at', 'severity']
   filterset_fields = ['location', 'severity', 'status', 'created_at']
-  permission_classes = [IncidentActorPermission, RolePermission]
-  allowed_roles = ['admin', 'responder', 'authority']
+  permission_classes = [FieldOperationPermission]
   
   def get_queryset(self):
     user = self.request.user
-    role = getattr(user.profile, 'control', None)
+    role = user.profile.control
 
     if user.is_admin:
       return self.queryset
     if role == 'authority':
       return self.queryset
-
     if role == 'responder':
       verified = self.queryset.filter(status = 'verified')
       own = self.queryset.filter(created_by=user)
-      return verified | own
-
+      check = verified | own
+      check = check.distinct()
+      return check
     if role == 'citizen':
-      verified = Incident.objects.filter(status = 'verified')
-      own = Incident.objects.filter(created_by=user)
-      return verified | own
-    return self.queryset
+      verified = self.queryset.filter(status = 'verified')
+      own = self.queryset.filter(created_by=user)
+      check = verified | own
+      check = check.distinct()
+      return check
+    
+    return self.queryset.none()
   
   @action(detail=False, methods=['post'])
   def report(self, request):
@@ -114,29 +116,28 @@ class IncidentViewset(viewsets.ModelViewSet):
 class IncidentReportViewset(viewsets.ModelViewSet):
   serializer_class = IncidentReportSerializer
   queryset = IncidentReport.objects.all()
-  permission_classes = [IncidentActorPermission]
+  permission_classes = [OwnerOrCoordinatoPermission]
   
   def get_queryset(self):
     user = self.request.user
-    role = getattr(user.profile, 'control', None)
+    role = user.profile.control
     if user.is_admin:
       return self.queryset
     if role == 'authority':
       return self.queryset
+    if role == 'responder':  
+      res = self.queryset.filter(incident__allocations__allocated_by=user)
+      res = res.distinct()
+      return res
 
-    if role == 'responder':
-      incid = self.queryset.filter(incident__allocations__allocated_by=user)
-      incid = incid.distinct()
     if role == 'citizen':
-        return self.queryset.filter(reported_by=user)
-    return self.queryset
+      return self.queryset.filter(reported_by=user)
+    return self.queryset.none()
   
 class IncidentGroupViewset(viewsets.ModelViewSet):
   serializer_class = IncidentGroupSerializer
   queryset = IncidentGroup.objects.all()
-  permission_classes = [RolePermission]
-  allowed_roles = ['admin', 'responder', 'authority', 'citizen']
+  permission_classes = [ReadOnlyPublicPermission]
   
   def get_queryset(self):
     return self.queryset
-  
