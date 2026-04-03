@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from incidents.models import Incident, IncidentReport, IncidentGroup, IncidentPriorRecord, AllocationDecision
+from incidents.models import Incident, IncidentReport, IncidentGroup, IncidentPriorRecord
 from incidents.serializers.basic import IncidentReportSerializer1, IncidentGroupSerializer1, IncidentPriorityRecordSerializer1
 
 class IncidentSerializer(serializers.ModelSerializer):
@@ -27,9 +27,4 @@ class IncidentPriorityRecordSerializer(serializers.ModelSerializer):
     model = IncidentPriorRecord
     fields = ['incident', 'prev_priority', 'new_priority', 'reason', 'created_at']
     
-class AllocationDecisionSerializer(serializers.ModelSerializer):
-  class Meta:
-    model = AllocationDecision
-    fields = ['unit', 'incident', 'allocated_by', 'inventory', 'reason', 'created_at']
-    read_only_fields = ('allocated_by', 'created_at')
     

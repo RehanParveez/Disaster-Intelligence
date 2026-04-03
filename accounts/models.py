@@ -9,6 +9,13 @@ class BaseModel(models.Model):
   class Meta:
     abstract = True
 
+CONTROL_CHOICES = (
+  ('citizen', 'Citizen'),
+  ('responder', 'Responder'),
+  ('admin', 'Admin'),
+  ('authority', 'Authority'),
+ )
+
 class User(AbstractUser, BaseModel):
   email = models.EmailField(unique=True)
   phone = models.CharField(max_length=35)
@@ -20,6 +27,7 @@ class User(AbstractUser, BaseModel):
 
 class Profile(models.Model):
   user = models.OneToOneField(User, on_delete=models.CASCADE)
+  control = models.CharField(max_length=50, choices=CONTROL_CHOICES, default = 'citizen')
   location = models.CharField(max_length=55, blank=True, null=True)
   
   def __str__(self):

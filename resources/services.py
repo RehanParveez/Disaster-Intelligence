@@ -28,12 +28,12 @@ def create_unit(data, user):
     pres_avail_units=1, created_by=user, reason = 'the unit is created')
   return unit
 
-def allocate_unit(unit_id, invent_id, user, reason=None):
+def allocate_unit_serv(unit_id, inventory_id, user, reason=None):
   unit = Unit.objects.filter(id=unit_id)
   unit = unit.first()
   if not unit:
     raise ValidationError('the unit is not pres.')
-  invent = Inventory.objects.filter(id=invent_id)
+  invent = Inventory.objects.filter(id=inventory_id)
   invent = invent.first()
   if not invent:
     raise ValidationError('the invent. is not pres.')
@@ -53,12 +53,12 @@ def allocate_unit(unit_id, invent_id, user, reason=None):
     pres_avail_units=avail.avail_units, created_by=user, reason=reason)
   return avail
 
-def return_unit(unit_id, invent_id, user, reason=None):
+def return_unit_serv(unit_id, inventory_id, user, reason=None):
     unit = Unit.objects.filter(id=unit_id)
     unit = unit.first()
     if not unit:
       raise ValidationError('the unit is not pres.')
-    invent = Inventory.objects.filter(id=invent_id)
+    invent = Inventory.objects.filter(id=inventory_id)
     invent = invent.first()
     if not invent:
       raise ValidationError('the invent is not pres.')

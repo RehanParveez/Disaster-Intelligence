@@ -1,5 +1,5 @@
 from rest_framework import viewsets
-from incidents.models import Incident, IncidentReport, IncidentGroup
+from incidents.models import Incident, IncidentReport, IncidentGroup, AllocationDecision
 from incidents.serializers.detail import IncidentSerializer, IncidentReportSerializer, IncidentGroupSerializer
 from incidents.serializers.basic import IncidentReportCreateSerializer
 from django_filters.rest_framework import DjangoFilterBackend
@@ -7,6 +7,8 @@ from rest_framework.filters import SearchFilter, OrderingFilter
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from incidents.services.inc_ser import inc_report, verifiy_inc, reject_inc, group_incid, cal_prior
+from resources.services import allocate_unit_serv, return_unit_serv
+from django.db import transaction
 
 # Create your views here.
 class IncidentViewset(viewsets.ModelViewSet):
@@ -52,6 +54,40 @@ class IncidentViewset(viewsets.ModelViewSet):
     serializer = self.get_serializer(incidents, many=True)
     return Response(serializer.data)
   
+  @action(detail=True, methods=['post'])
+  @transaction.atomic
+  def allocate_unit(self, request, pk=None):
+    incident = self.get_object()
+    unit_id = request.data.get('unit_id')
+    inventory_id = request.data.get('inventory_id')
+    reason = request.data.get('reason')
+
+    if not unit_id:
+      return Response({'err': 'the unit_id is need.'}, status=400)
+    avail = allocate_unit_serv(unit_id=unit_id, inventory_id=inventory_id, user=request.user, reason=reason)
+    AllocationDecision.objects.create(unit_id=unit_id, incident=incident, allocated_by=request.user,
+     inventory_id=inventory_id, reason=reason)
+    
+    return Response({'message': 'the unit is allocated to incid', 'availability': avail.avail_units})
+
+  @action(detail=True, methods=['post'])
+  @transaction.atomic
+  def return_unit(self, request, pk=None):
+    incid = self.get_object()
+    unit_id = request.data.get('unit_id')
+    reason = request.data.get('reason')
+
+    if not unit_id:
+      return Response({'err': 'the unit_id is required'}, status=400)
+    alloca = AllocationDecision.objects.filter(unit_id=unit_id, incident=incid)
+    alloca = alloca.first()
+    if not alloca:
+      return Response({'err': 'the unit is not alloca to this incid'}, status=400)
+    return_unit_serv(unit_id=unit_id, inventory_id=alloca.inventory_id, user=request.user, reason=reason)
+
+    alloca.delete()
+    return Response({'message': 'the unit is returned from the incid'})
+
 class IncidentReportViewset(viewsets.ModelViewSet):
   serializer_class = IncidentReportSerializer
   queryset = IncidentReport.objects.all()

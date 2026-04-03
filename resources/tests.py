@@ -83,52 +83,8 @@ class UnitViewsetTest(ParentTest):
     self.avail2 = Availability.objects.create(res_kind=self.resource2, total_units=2, avail_units=2, location = 'Bahawalpur')
     self.invent = Inventory.objects.create(name = 'Main Storage', location = 'Bahawalpur')
 
-  def test_allocate1(self):
-    url = f'/resources/unit/{self.unit1.id}/allocate/'
-    resp = self.client.post(url, {'invent_id': self.invent.id, 'reason': 'allocation test'})
-    self.assertEqual(resp.status_code, 200)
-    self.assertIn(self.unit1, Inventory.objects.get(id=self.invent.id).resources.all())
-
-  def test_return_unit1(self):
-    allocate_unit(self.unit1.id, self.invent.id, self.user)
-    url = f'/resources/unit/{self.unit1.id}/return_unit/'
-    response = self.client.post(url, {'invent_id': self.invent.id, 'reason': 'return test'})
-    self.assertEqual(response.status_code, 200)
-    self.assertNotIn(self.unit1, Inventory.objects.get(id=self.invent.id).resources.all())
-
   def test_upd_avail(self):
     url = f'/resources/unit/{self.unit1.id}/upd_avail/'
     response = self.client.post(url, {'avail_units': 0})
     self.assertEqual(response.status_code, 200)
     self.assertEqual(Availability.objects.get(id=self.avail1.id).avail_units, 0)
-
-  def test_allocate2(self):
-    url = f'/resources/unit/{self.unit1.id}/allocate/'
-    resp = self.client.post(url, {})
-    self.assertEqual(resp.status_code, 400)
-    self.assertEqual(resp.data['err'], 'the invent_id is need.')
-
-  def test_return_unit2(self):
-    url = f'/resources/unit/{self.unit1.id}/return_unit/'
-    response = self.client.post(url, {})
-    self.assertEqual(response.status_code, 400)
-    self.assertEqual(response.data['err'], 'the invent_id is need.')
-
-  def test_allocate_mult_units(self):
-    units = [self.unit1, self.unit2]
-    for u in units:
-      url = f'/resources/unit/{u.id}/allocate/'
-      self.client.post(url, {'invent_id': self.invent.id, 'reason': f'allocating {u.identifier}'})
-    for u in units:
-      self.assertIn(u, self.invent.resources.all())
-
-  def test_return_mult_units(self):
-    units = [self.unit1, self.unit2]
-    for u in units:
-      url = f'/resources/unit/{u.id}/allocate/'
-      self.client.post(url, {'invent_id': self.invent.id, 'reason': f'allocating {u.identifier}'})
-    for u in units:
-      url = f'/resources/unit/{u.id}/return_unit/'
-      self.client.post(url, {'invent_id': self.invent.id, 'reason': f'returning {u.identifier}'})
-    for u in units:
-      self.assertNotIn(u, self.invent.resources.all())
