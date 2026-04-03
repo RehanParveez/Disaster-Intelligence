@@ -1,6 +1,7 @@
 from django.db import models
 from accounts.models import User, BaseModel
 from resources.models import Unit, Inventory
+from responders.models import Responder, Load
 
 # Create your models here.
 class Incident(models.Model):
@@ -15,6 +16,7 @@ class Incident(models.Model):
   severity = models.IntegerField()
   prior = models.IntegerField(default=0)
   group = models.ForeignKey('IncidentGroup', on_delete=models.SET_NULL, null=True, blank=True, related_name = 'incidents')
+  assigned_responders = models.ManyToManyField(Responder, through=Load, related_name = 'incidents_assigned', blank=True)
   status = models.CharField(max_length=55, choices=STATUS_CHOICES, default = 'active')
   created_by = models.ForeignKey(User, on_delete=models.CASCADE)
   created_at = models.DateTimeField(auto_now_add=True)

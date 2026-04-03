@@ -6,11 +6,17 @@ from resources.services import create_unit, update_avail
 from rest_framework.response import Response
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import SearchFilter, OrderingFilter
+from Disaster_Intelligence.core.permissions import ResourceActorPermission, ReadOnlyOrAdminPermission
 
 # Create your views here.
 class ResourceViewset(viewsets.ModelViewSet):
   serializer_class = ResourceSerializer
   queryset = Resource.objects.all()
+  permission_classes = [ResourceActorPermission]
+  allowed_roles = ['admin', 'responder', 'authority']
+  
+  def get_queryset(self):
+    return self.queryset
 
 class UnitViewset(viewsets.ModelViewSet):
   serializer_class = UnitSerializer
@@ -21,6 +27,14 @@ class UnitViewset(viewsets.ModelViewSet):
   search_fields = ['reason']
   ordering_fields = ['created_at']
   filterset_fields = ['pres_avail_units', 'change_kind', 'created_at']
+  permission_classes = [ResourceActorPermission]
+  allowed_roles = ['admin', 'responder', 'authority']
+  
+  def get_queryset(self):
+    user = self.request.user
+    if user.is_admin:
+      return self.queryset
+    return self.queryset.filter(created_by=user)
   
   def create(self, request):
     unit = create_unit(request.data, request.user)
@@ -35,12 +49,41 @@ class UnitViewset(viewsets.ModelViewSet):
 class AvailabilityViewset(viewsets.ReadOnlyModelViewSet):
   serializer_class = AvailabilitySerializer
   queryset = Availability.objects.all()
+  permission_classes = [ReadOnlyOrAdminPermission]
+  
+  def get_queryset(self):
+    return self.queryset
   
 class InventoryViewSet(viewsets.ModelViewSet):
   serializer_class = InventorySerializer
   queryset = Inventory.objects.all()
+  permission_classes = [ResourceActorPermission]
+  allowed_roles = ['admin', 'responder', 'authority']
+  
+  def get_queryset(self):
+    user = self.request.user
+    profile = getattr(user, 'profile', None)
+    if user.is_admin:
+      return self.queryset
+    if not profile:
+      return self.queryset
+    invents_by_reso = self.queryset.filter(resources__created_by=user)
+    invents_by_reso = invents_by_reso.distinct()
+
+    if profile.location:
+      invents_by_loca = self.queryset.filter(location=profile.location)
+      return invents_by_reso | invents_by_loca
+    return invents_by_reso
   
 class ConsumptionViewSet(viewsets.ModelViewSet):
   serializer_class = ConsumptionSerializer
   queryset = Consumption.objects.all()
+  permission_classes = [ResourceActorPermission]
+  allowed_roles = ['admin', 'responder', 'authority']
+  
+  def get_queryset(self):
+    user = self.request.user
+    if user.is_admin:
+      return self.queryset
+    return self.queryset.filter(created_by=user)
   

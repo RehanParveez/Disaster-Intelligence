@@ -41,7 +41,8 @@ INSTALLED_APPS = [
     'django_filters',
     'accounts',
     'incidents',
-    'resources'
+    'resources',
+    'responders',
 ]
 
 MIDDLEWARE = [
