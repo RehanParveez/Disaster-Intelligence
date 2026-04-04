@@ -1,6 +1,6 @@
 from rest_framework import viewsets
 from incidents.models import Incident, IncidentReport, IncidentGroup, AllocationDecision
-from incidents.serializers.detail import IncidentSerializer, IncidentReportSerializer, IncidentGroupSerializer
+from incidents.serializers.detail import IncidentSerializer, IncidentReportSerializer, IncidentGroupSerializer, AllocationDecisionSerializer
 from incidents.serializers.basic import IncidentReportCreateSerializer
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import SearchFilter, OrderingFilter
@@ -10,6 +10,7 @@ from incidents.services.inc_ser import inc_report, verifiy_inc, reject_inc, grou
 from resources.services import allocate_unit_serv, return_unit_serv
 from django.db import transaction
 from Disaster_Intelligence.core.permissions import FieldOperationPermission, OwnerOrCoordinatoPermission, ReadOnlyPublicPermission
+from scheduler.services import manual_assign, suggest_responders, suggest_resources
 
 # Create your views here.
 class IncidentViewset(viewsets.ModelViewSet):
@@ -112,6 +113,49 @@ class IncidentViewset(viewsets.ModelViewSet):
 
     alloca.delete()
     return Response({'message': 'the unit is returned from the incid'})
+  
+  @action(detail=True, methods=['post'])
+  def assign(self, request, pk=None):
+    incident = self.get_object()
+    
+    unit_id = request.data.get('unit_id')
+    inventory_id = request.data.get('inventory_id')
+    if not unit_id:
+      return Response({'detail': 'the unit_id is need.'}, status=400)
+    if not inventory_id:
+      return Response({'detail': 'the inventory_id is need.'}, status=400)
+
+    decision = manual_assign(incident, unit_id, inventory_id, request.user)
+    serializer = AllocationDecisionSerializer(decision)
+    return Response(serializer.data, status=201)
+  
+  @action(detail=True, methods=['get'])
+  def suggest_reso(self, request, pk=None):
+    incident = self.get_object()
+    resources = suggest_resources(incident)
+      
+    units_list = []
+    for unit in resources['units']:
+      unit_id = unit.id
+      units_list.append(unit_id)
+    invents_list = []
+    for inventory in resources['inventories']:
+      inventory_id = inventory.id
+      invents_list.append(inventory_id)
+    data = {'units': units_list, 'inventories': invents_list}
+    return Response(data, status=200)
+  
+  @action(detail=True, methods=['get'])
+  def suggest_respon(self, request, pk=None):
+    responders = suggest_responders()
+    data = []
+    for res in responders:
+      respon = {}
+      respon['id'] = res.id
+      respon['username'] = res.user.username
+      respon['max_load'] = res.max_load
+      data.append(respon)
+    return Response(data, status=200)
 
 class IncidentReportViewset(viewsets.ModelViewSet):
   serializer_class = IncidentReportSerializer
