@@ -4,8 +4,20 @@ from rest_framework.response import Response
 from scheduler.models import IncidentList, Cycle, DecisionRecord
 from scheduler.services import run_cycle
 from scheduler.serializers.detail import IncidentListSerializer, CycleSerializer, DecisionRecordSerializer
+from Disaster_Intelligence.core.permissions import RoleBasedPermission
 
 class SchedulerViewSet(viewsets.ViewSet):
+  serializer_class = CycleSerializer
+  queryset = Cycle.objects.all()
+  permission_classes = [RoleBasedPermission]
+  allowed_roles = ['admin', 'authority']
+  
+  def get_queryset(self):
+      user = self.request.user
+      if user.is_admin:
+        return self.queryset
+      return self.queryset
+  
   @action(detail=False, methods=['post'])
   def run(self, request):
     cycle = run_cycle()
