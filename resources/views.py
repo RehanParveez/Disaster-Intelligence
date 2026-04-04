@@ -51,7 +51,7 @@ class UnitViewset(viewsets.ModelViewSet):
     serializer = AvailabilitySerializer(avail)
     return Response(serializer.data)
   
-class AvailabilityViewset(viewsets.ReadOnlyModelViewSet):
+class AvailabilityViewset(viewsets.ModelViewSet):
   serializer_class = AvailabilitySerializer
   queryset = Availability.objects.all()
   permission_classes = [ReadOnlyPublicPermission]

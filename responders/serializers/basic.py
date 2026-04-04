@@ -1,5 +1,6 @@
 from rest_framework import serializers
-from responders.models import Capability, Load
+from responders.models import Capability, Shift, Responder
+from accounts.serializers.basic import UserSerializer1
 
 class RegisterResponderSerializer(serializers.Serializer):
   max_load = serializers.IntegerField(required=False)
@@ -17,7 +18,17 @@ class CapabilitySerializer1(serializers.ModelSerializer):
     model = Capability
     fields = ['id', 'name']
     
-class LoadSerializer1(serializers.ModelSerializer):
+class ShiftSerializer1(serializers.ModelSerializer):
   class Meta:
-    model = Load
-    fields = ['responder', 'incident']
+    model = Shift
+    fields = ['id', 'start_time']
+    
+class ResponderSerializer1(serializers.ModelSerializer):
+  user = UserSerializer1(read_only=True)
+  class Meta:
+    model = Responder
+    fields = ['user', 'max_load']
+    
+
+    
+
