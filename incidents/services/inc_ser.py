@@ -1,7 +1,9 @@
 from django.db import transaction
-from django.core.exceptions import PermissionDenied
+from django.core.exceptions import PermissionDenied, ValidationError
 from incidents.models import Incident, IncidentReport, IncidentGroup, IncidentPriorRecord
 from incidents.selectors.inc_sel import nearby_inc, inc_id, group_by_loc
+from incidents.models import AllocationDecision
+from resources.services import return_unit_serv
 
 @transaction.atomic
 def inc_report(data, user):
@@ -40,6 +42,8 @@ def reject_inc(incident_id, user):
 
 def group_incid(incident_id):
   incid = Incident.objects.get(id=incident_id)
+  if incid.group:
+    return incid.group
   group = group_by_loc(incid.location)
 
   if group:
@@ -65,4 +69,14 @@ def cal_prior(incident_id):
   incid.save()
   IncidentPriorRecord.objects.create(incident=incid, prev_prior=prev_prior, new_prior=new_prior, reason = 'manually recalculating')
   return incid
+
+@transaction.atomic
+def return_unit_delete(incident, unit_id, user, reason=None):
+  alloca = AllocationDecision.objects.filter(unit_id=unit_id, incident=incident)
+  alloca = alloca.first()
+  if not alloca:
+    raise ValidationError('the unit is not alloca to this incid')
+  return_unit_serv(unit_id=unit_id, inventory_id=alloca.inventory_id, user=user, reason=reason)
+  alloca.delete()
+  return True
   

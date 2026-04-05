@@ -6,11 +6,12 @@ from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import SearchFilter, OrderingFilter
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from incidents.services.inc_ser import inc_report, verifiy_inc, reject_inc, group_incid, cal_prior
+from incidents.services.inc_ser import inc_report, verifiy_inc, reject_inc
 from resources.services import allocate_unit_serv, return_unit_serv
 from django.db import transaction
 from Disaster_Intelligence.core.permissions import FieldOperationPermission, OwnerOrCoordinatoPermission, ReadOnlyPublicPermission
 from scheduler.services import manual_assign, suggest_responders, suggest_resources
+from incidents.services.inc_ser import return_unit_delete
 
 # Create your views here.
 class IncidentViewset(viewsets.ModelViewSet):
@@ -63,16 +64,6 @@ class IncidentViewset(viewsets.ModelViewSet):
   def reject(self, request, pk=None):
     reject_inc(pk, request.user)
     return Response({'message': 'the incid is rejected'})
- 
-  @action(detail=True, methods=['post'])
-  def group(self, request, pk=None):
-    group = group_incid(pk)
-    return Response({'message': 'grouped', 'group_id': group.id})
- 
-  @action(detail=True, methods=['post'])
-  def recal_prior(self, request, pk=None):
-    incid = cal_prior(pk)
-    return Response({'message': 'the prior is updated', 'prior': incid.prior})
   
   @action(detail=False, methods=['get'])
   def prior_list(self, request):
@@ -105,13 +96,7 @@ class IncidentViewset(viewsets.ModelViewSet):
 
     if not unit_id:
       return Response({'err': 'the unit_id is required'}, status=400)
-    alloca = AllocationDecision.objects.filter(unit_id=unit_id, incident=incid)
-    alloca = alloca.first()
-    if not alloca:
-      return Response({'err': 'the unit is not alloca to this incid'}, status=400)
-    return_unit_serv(unit_id=unit_id, inventory_id=alloca.inventory_id, user=request.user, reason=reason)
-
-    alloca.delete()
+    return_unit_delete(incident=incid, unit_id=unit_id, user=request.user, reason=reason)
     return Response({'message': 'the unit is returned from the incid'})
   
   @action(detail=True, methods=['post'])
