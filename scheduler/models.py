@@ -20,7 +20,7 @@ class Cycle(models.Model):
   decis_made = models.IntegerField(default=0)
 
   def __str__(self):
-    return self.id
+    return str(self.id)
 
 class DecisionRecord(models.Model):
   cycle = models.ForeignKey(Cycle, on_delete=models.CASCADE, related_name = 'dec_record')
@@ -31,4 +31,4 @@ class DecisionRecord(models.Model):
   created_at = models.DateTimeField(auto_now_add=True)
 
   def __str__(self):
-    return self.incident.title
+    return (self.incident.title)

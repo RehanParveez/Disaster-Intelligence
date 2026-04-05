@@ -9,7 +9,7 @@ from execution.services import start_exec, update_exec, complete_exec, fail_exec
 # Create your views here.
 class ExecutionViewset(viewsets.ModelViewSet):
   serializer_class = ExecutionSerializer
-  queryset = Execution.objects.all()
+  queryset = Execution.objects.all().order_by('-created_at')
   permission_classes = [FieldOperationPermission]
   allowed_roles = ['admin', 'authority', 'responder']
   
@@ -23,7 +23,7 @@ class ExecutionViewset(viewsets.ModelViewSet):
       return self.queryset
     if role == 'responder': 
       check = self.queryset.filter(incident__loads__responder__user=user)
-      check = check.distinct()
+      return check.distinct()
     return self.queryset.none()
   
   @action(detail=True, methods=['post'])
@@ -65,3 +65,31 @@ class ExecutionViewset(viewsets.ModelViewSet):
     fails = exec_obj.failures.all()
     serializer = FailureRecordSerializer(fails, many=True)
     return Response(serializer.data)
+  
+  @action(detail=True, methods=['get'])
+  def decision_detail(self, request, pk=None):
+    exec_obj = self.get_object()
+    decision = exec_obj.decision
+    if not decision:
+      return Response({'err': 'the decision is not link.'}, status=404)
+  
+    check = {'decision_id': decision.id, 'reason': decision.reason}
+    if decision.incident:
+      check['incident_id'] = decision.incident.id
+    else:
+      check['incident_id'] = None
+    if decision.unit:
+      check['unit_id'] = decision.unit.id
+    else:
+      check['unit_id'] = None
+
+    if decision.responder:
+      check['responder_id'] = decision.responder.id
+    else:
+      check['responder_id'] = None
+    if decision.cycle:
+      check['cycle_id'] = decision.cycle.id
+    else:
+      check['cycle_id'] = None
+
+    return Response(check)

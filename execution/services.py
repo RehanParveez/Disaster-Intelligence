@@ -2,6 +2,8 @@ from django.core.exceptions import ValidationError
 from execution.models import Execution, ExecutionRecord, FailureRecord
 from resources.services import return_unit_serv
 from scheduler.tasks import run_sched_cycle
+from django.db import transaction
+from incidents.models import IncidentPriorRecord
 
 def start_exec(execution_id):
   exec_obj = Execution.objects.get(id=execution_id)
@@ -61,3 +63,24 @@ def fail_exec(execution_id, reason):
   run_sched_cycle.delay()
   
   return exec_obj
+
+@transaction.atomic
+def handle_failure(execution):
+  incident = execution.incident
+  prev_prior = incident.prior
+  incident.prior += 10 
+  incident.save()
+
+  IncidentPriorRecord.objects.create(incident=incident, prev_prior=prev_prior, new_prior=incident.prior,
+    reason = f'due to fail.exec. the auto escal {execution.id}')
+  run_sched_cycle.delay()
+  return incident
+
+@transaction.atomic
+def escalate_incid(incident, reason = 'the manual escal'):
+  prev_prior = incident.prior
+  incident.prior += 50 
+  incident.status = 'verified'
+  incident.save()
+  IncidentPriorRecord.objects.create(incident=incident, prev_prior=prev_prior, new_prior=incident.prior, reason=reason)
+  return incident

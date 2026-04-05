@@ -7,11 +7,14 @@ from rest_framework.filters import SearchFilter, OrderingFilter
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from incidents.services.inc_ser import inc_report, verifiy_inc, reject_inc
-from resources.services import allocate_unit_serv, return_unit_serv
+from resources.services import allocate_unit_serv
 from django.db import transaction
 from Disaster_Intelligence.core.permissions import FieldOperationPermission, OwnerOrCoordinatoPermission, ReadOnlyPublicPermission
 from scheduler.services import manual_assign, suggest_responders, suggest_resources
 from incidents.services.inc_ser import return_unit_delete
+from execution.services import escalate_incid
+from execution.models import FailureRecord
+from execution.serializers.detail import FailureRecordSerializer
 
 # Create your views here.
 class IncidentViewset(viewsets.ModelViewSet):
@@ -141,7 +144,23 @@ class IncidentViewset(viewsets.ModelViewSet):
       respon['max_load'] = res.max_load
       data.append(respon)
     return Response(data, status=200)
-
+   
+  @action(detail=True, methods=['post'])
+  def escalate(self, request, pk=None):
+    incident = self.get_object()
+    reason = request.data.get('reason', 'the manual escal')
+    updated_incid = escalate_incid(incident, reason=reason)
+        
+    return Response({'message': 'the incid has been escal.', 'new_priority': updated_incid.prior,
+      'status': updated_incid.status}, status=200)
+   
+  @action(detail=True, methods=['get'])
+  def failures(self, request, pk=None):
+    incid = self.get_object()
+    failure_rec = FailureRecord.objects.filter(execution__incident=incid)
+    serializer = FailureRecordSerializer(failure_rec, many=True)
+    return Response(serializer.data, status=200)
+  
 class IncidentReportViewset(viewsets.ModelViewSet):
   serializer_class = IncidentReportSerializer
   queryset = IncidentReport.objects.all()

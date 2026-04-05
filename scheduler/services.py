@@ -5,6 +5,7 @@ from responders.models import Responder, Load
 from django.db.models import F
 from scheduler.models import Cycle, IncidentList, DecisionRecord
 from django.utils import timezone
+from execution.models import Execution
 
 def manual_assign(incident, unit_id, inventory_id, user):
   unit = Unit.objects.filter(id=unit_id)
@@ -73,7 +74,11 @@ def run_cycle():
     load.load_count += 1
     load.save()
 
-    DecisionRecord.objects.create(cycle=cycle, incident=incid, unit=unit, responder=respon, reason = 'making alloca. auto.')
+    decision = DecisionRecord.objects.create(cycle=cycle, incident=incid, unit=unit, responder=respon, reason = 'making alloca. auto.')
+    exists = Execution.objects.filter(decision=decision)
+    exists = exists.exists()
+    if not exists:
+      Execution.objects.create(incident=incid, unit=unit, inventory=None, created_by=None, status = 'pending', decision=decision)
     decis_count += 1
   cycle.completed_at = timezone.now()
   cycle.total_incids = len(list_data)
