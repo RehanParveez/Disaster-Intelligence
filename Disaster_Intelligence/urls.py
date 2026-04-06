@@ -29,5 +29,6 @@ urlpatterns = [
     path('responders/', include('responders.urls')),
     path('scheduler/', include('scheduler.urls')),
     path('execution/', include('execution.urls')),
-    path('events/', include('events.urls'))
+    path('events/', include('events.urls')),
+    path('notifications/', include('notifications.urls')),
 ]

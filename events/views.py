@@ -6,7 +6,7 @@ from events.services import process_event
 from rest_framework.response import Response
 from Disaster_Intelligence.core.permissions import RoleBasedPermission
 
-class EventViewset(viewsets.ReadOnlyModelViewSet):
+class EventViewset(viewsets.ModelViewSet):
     serializer_class = EventSerializer
     queryset = Event.objects.all()
     permission_classes = [RoleBasedPermission]
@@ -20,6 +20,10 @@ class EventViewset(viewsets.ReadOnlyModelViewSet):
       if user_role == 'authority':
         return self.queryset
       return self.queryset.none()
+  
+    def perform_create(self, serializer):
+      event = serializer.save()
+      process_event(event.id)
     
     @action(detail=True, methods=['post'])
     def replay(self, request, pk=None):
