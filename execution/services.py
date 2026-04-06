@@ -1,4 +1,4 @@
-from django.core.exceptions import ValidationError
+from rest_framework.exceptions import ValidationError
 from execution.models import Execution, ExecutionRecord, FailureRecord
 from resources.services import return_unit_serv
 from scheduler.tasks import run_sched_cycle

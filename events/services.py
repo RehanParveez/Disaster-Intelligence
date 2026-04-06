@@ -7,6 +7,7 @@ from incidents.models import Incident
 def make_event(kind_name, payload):
   kind, _ = EventKind.objects.get_or_create(name=kind_name)
   event = Event.objects.create(event_kind=kind, payload=payload) 
+  process_event(event.id)
   return event
 
 @transaction.atomic
@@ -14,6 +15,7 @@ def process_event(event_id):
     event = Event.objects.get(id=event_id)
     kind = event.event_kind.name
     data = event.payload
+    was_successful = False
 
     if kind == 'EXECUTION_FAILED':
       exec_obj = Execution.objects.get(id=data['execution_id'])
@@ -21,6 +23,7 @@ def process_event(event_id):
       handle_failure(exec_obj)
       run_sched_cycle.delay()
       EventRecord.objects.create(event=event, status = 'success', message = f'handl. failure for the exec. {exec_obj.id}')
+      was_successful = True
 
     elif kind == 'INCIDENT_ESCALATED':
       incid_obj = Incident.objects.get(id=data['incident_id'])
@@ -28,6 +31,9 @@ def process_event(event_id):
         
       escalate_incid(incid_obj, reason=reason)
       EventRecord.objects.create(event=event, status = 'success', message = f'the  incid. is escal {incid_obj.id}')
-    event.is_processed = True
-    event.save()
+      was_successful = True
+    
+    if was_successful:
+      event.is_processed = True
+      event.save()
     return event

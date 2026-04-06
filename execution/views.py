@@ -17,13 +17,11 @@ class ExecutionViewset(viewsets.ModelViewSet):
     user = self.request.user
     if user.is_admin:
       return self.queryset
-    role = user.profile.control
-    
+    role = getattr(user.profile, 'control', None)
     if role == 'authority':
       return self.queryset
     if role == 'responder': 
-      check = self.queryset.filter(incident__loads__responder__user=user)
-      return check.distinct()
+      return self.queryset.filter(incident__loads__responder=user.responder_profile).distinct()
     return self.queryset.none()
   
   @action(detail=True, methods=['post'])

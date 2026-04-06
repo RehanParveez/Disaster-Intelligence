@@ -26,3 +26,6 @@ class EventRecord(models.Model):
   status = models.CharField(max_length=50, choices=STATUS_CHOICES, default = 'pending')
   message = models.CharField(max_length=60)
   processed_at = models.DateTimeField(auto_now_add=True)
+  
+  def __str__(self):
+    return self.event.event_kind
