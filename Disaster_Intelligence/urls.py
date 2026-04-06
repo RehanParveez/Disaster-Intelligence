@@ -28,5 +28,6 @@ urlpatterns = [
     path('resources/', include('resources.urls')),
     path('responders/', include('responders.urls')),
     path('scheduler/', include('scheduler.urls')),
-    path('execution/', include('execution.urls'))
+    path('execution/', include('execution.urls')),
+    path('events/', include('events.urls'))
 ]

@@ -45,6 +45,7 @@ INSTALLED_APPS = [
     'responders',
     'scheduler',
     'execution',
+    'events',
     'django_celery_beat',
 ]
 

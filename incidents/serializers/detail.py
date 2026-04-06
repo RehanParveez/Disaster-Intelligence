@@ -2,15 +2,17 @@ from rest_framework import serializers
 from incidents.models import Incident, IncidentReport, IncidentGroup, IncidentPriorRecord, AllocationDecision
 from incidents.serializers.basic import IncidentReportSerializer1, IncidentGroupSerializer1, IncidentPriorityRecordSerializer1
 from responders.serializers.basic import ResponderSerializer1
+from execution.serializers.basic import ExecutionSerializer1
 
 class IncidentSerializer(serializers.ModelSerializer):
   reports = IncidentReportSerializer1(many=True, read_only=True)
   group = IncidentGroupSerializer1(read_only=True)
   prior_records = IncidentPriorityRecordSerializer1(many=True, read_only=True)
   assigned_responders = ResponderSerializer1(many=True, read_only=True)
+  executions = ExecutionSerializer1(many=True, read_only=True)
   class Meta:
     model = Incident
-    fields = ['title', 'location', 'reports', 'description', 'assigned_responders', 'severity', 'prior', 'prior_records', 'group', 'status', 'created_by', 'created_at']
+    fields = ['title', 'location', 'reports', 'description', 'assigned_responders', 'executions', 'severity', 'prior', 'prior_records', 'group', 'status', 'created_by', 'created_at']
     read_only_fields = ['status', 'created_at']
     
 class IncidentReportSerializer(serializers.ModelSerializer):

@@ -4,6 +4,7 @@ from resources.services import return_unit_serv
 from scheduler.tasks import run_sched_cycle
 from django.db import transaction
 from incidents.models import IncidentPriorRecord
+from events.services import make_event
 
 def start_exec(execution_id):
   exec_obj = Execution.objects.get(id=execution_id)
@@ -60,7 +61,8 @@ def fail_exec(execution_id, reason):
   exec_obj.save()
   FailureRecord.objects.create(execution=exec_obj, reason=reason)
   ExecutionRecord.objects.create(execution=exec_obj, message =f'the exec. has failed: {reason}')
-  run_sched_cycle.delay()
+  payload = {'execution_id': exec_obj.id, 'reason': reason}
+  make_event(kind_name = 'EXECUTION_FAILED', payload=payload)
   
   return exec_obj
 
