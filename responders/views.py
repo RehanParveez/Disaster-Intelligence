@@ -1,10 +1,10 @@
 from rest_framework import viewsets
-from responders.models import Responder, Capability
+from responders.models import Responder, Capability, Load
 from rest_framework.decorators import action
 from responders.serializers.basic import RegisterResponderSerializer, AvailabilitySerializer, AddSkillSerializer
 from responders.services import register_respon, set_avail
 from rest_framework.response import Response
-from responders.serializers.detail import ResponderSerializer, ShiftSerializer, CapabilitySerializer
+from responders.serializers.detail import ResponderSerializer, ShiftSerializer, CapabilitySerializer, LoadSerializer
 from Disaster_Intelligence.core.permissions import FieldOperationPermission, ReadOnlyPublicPermission
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import OrderingFilter
@@ -67,3 +67,24 @@ class CapabilityViewSet(viewsets.ModelViewSet):
   
   def get_queryset(self):
     return self.queryset
+
+class LoadViewSet(viewsets.ModelViewSet):
+  queryset = Load.objects.all()
+  serializer_class = LoadSerializer
+  permission_classes = [FieldOperationPermission]
+  filter_backends = [DjangoFilterBackend, OrderingFilter]
+  
+  # filtering fields
+  ordering_fields = ['load_count']
+  filterset_fields = ['responder', 'incident']
+  
+  def get_queryset(self):
+    user = self.request.user
+    if user.is_admin:
+      return self.queryset
+    role = getattr(user.profile, 'control', None)
+    if role == 'authority':
+      return self.queryset 
+    if role == 'responder':
+      return self.queryset.filter(responder__user=user)
+    return self.queryset.none()
