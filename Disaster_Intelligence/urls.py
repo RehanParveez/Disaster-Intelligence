@@ -31,4 +31,5 @@ urlpatterns = [
     path('execution/', include('execution.urls')),
     path('events/', include('events.urls')),
     path('notifications/', include('notifications.urls')),
+    path('analytics/', include('analytics.urls'))
 ]

@@ -47,7 +47,8 @@ INSTALLED_APPS = [
     'execution',
     'events',
     'notifications',
-    'django_celery_beat',
+    'analytics',
+    'django_celery_beat'
 ]
 
 MIDDLEWARE = [

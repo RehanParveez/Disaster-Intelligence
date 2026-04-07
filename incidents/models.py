@@ -9,6 +9,8 @@ class Incident(models.Model):
     ('active', 'Active'),
     ('verified', 'Verified'),
     ('rejected', 'Rejected'),
+    ('resolved', 'Resolved'),
+    ('closed', 'Closed'),
    )
   title = models.CharField(max_length=60)
   description = models.TextField()
