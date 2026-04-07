@@ -1,6 +1,6 @@
 from incidents.models import Incident, AllocationDecision
 from django.utils import timezone
-from analytics.models import ResponseMetrics, ResponderPerformance, ResourceEfficiency
+from analytics.models import ResponseRecord, ResponderPerformance, ResourceEfficiency
 from execution.models import Execution
 
 def calc_record(incident_id):
@@ -24,7 +24,7 @@ def calc_record(incident_id):
     primary_auth = first_alloc.allocated_by
     defs_data = {'disp_time_sec': disp_time_sec, 'total_reso_time': total_reso_time,
       'primary_auth': primary_auth}
-    ResponseMetrics.objects.update_or_create(incident=incident, defaults=defs_data)
+    ResponseRecord.objects.update_or_create(incident=incident, defaults=defs_data)
 
   for responder in incident.assigned_responders.all():
     perf, _ = ResponderPerformance.objects.get_or_create(responder=responder)

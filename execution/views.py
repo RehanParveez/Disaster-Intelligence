@@ -5,6 +5,8 @@ from Disaster_Intelligence.core.permissions import FieldOperationPermission
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from execution.services import start_exec, update_exec, complete_exec, fail_exec
+from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework.filters import OrderingFilter
 
 # Create your views here.
 class ExecutionViewset(viewsets.ModelViewSet):
@@ -12,6 +14,11 @@ class ExecutionViewset(viewsets.ModelViewSet):
   queryset = Execution.objects.all().order_by('-created_at')
   permission_classes = [FieldOperationPermission]
   allowed_roles = ['admin', 'authority', 'responder']
+  filter_backends = [DjangoFilterBackend, OrderingFilter]
+  
+  # filtering fields
+  ordering_fields = ['created_at']
+  filterset_fields = ['status', 'created_at']
   
   def get_queryset(self):
     user = self.request.user

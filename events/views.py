@@ -5,12 +5,19 @@ from rest_framework.decorators import action
 from events.services import process_event
 from rest_framework.response import Response
 from Disaster_Intelligence.core.permissions import RoleBasedPermission
+from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework.filters import OrderingFilter
 
 class EventViewset(viewsets.ModelViewSet):
     serializer_class = EventSerializer
     queryset = Event.objects.all()
     permission_classes = [RoleBasedPermission]
     allowed_roles = ['admin', 'authority']
+    filter_backends = [DjangoFilterBackend, OrderingFilter]
+  
+  # filtering fields
+    ordering_fields = ['created_at', 'is_processed']
+    filterset_fields = ['is_processed', 'created_at']
     
     def get_queryset(self):
       user = self.request.user

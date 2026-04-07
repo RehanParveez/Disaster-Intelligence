@@ -4,8 +4,12 @@ from analytics.models import ResponseRecord, ResourceEfficiency, ResponderPerfor
 from django.db.models import Avg, Sum, Count
 from rest_framework.response import Response
 from incidents.models import Incident
+from Disaster_Intelligence.core.permissions import LogisticsPermission, AdminUserPermission
+from Disaster_Intelligence.core.system_services import recal_all_analy, rebalance_resos
 
 class AnalyticsViewSet(viewsets.ViewSet):
+  permission_classes = [LogisticsPermission]
+  
   @action(detail=False, methods=['get'])
   def resp_time(self, request):
     data = ResponseRecord.objects.aggregate(avg_dispatch=Avg('disp_time_sec'), 
@@ -38,3 +42,16 @@ class AnalyticsViewSet(viewsets.ViewSet):
     performance = ResponderPerformance.objects.values('responder__user__username').annotate(total_handled=Sum('incid_handl'),
       total_successes=Sum('succ_exec'), avg_peak_load=Avg('avg_peak_load')).order_by('-total_successes')
     return Response(performance)
+
+class SystemViewSet(viewsets.ViewSet):
+  permission_classes = [AdminUserPermission]
+  
+  @action(detail=False, methods=['post'])
+  def recal_all(self, request):
+    result = recal_all_analy()
+    return Response({'status': 'success', 'message': 'the system analy are resync.', 'details': result}, status=200)
+
+  @action(detail=False, methods=['post'])
+  def rebalance(self, request):
+    check_data = rebalance_resos()
+    return Response({'status': 'success', 'message': 'the reso. rebal is done', 'results': check_data}, status=200)

@@ -14,7 +14,7 @@ class Event(BaseModel):
   is_processed = models.BooleanField(default=False)
 
   def __str__(self):
-    return self.event_kind.name
+    return f'{self.event_kind.name}'
 
 class EventRecord(models.Model):
   STATUS_CHOICES = (
@@ -28,4 +28,4 @@ class EventRecord(models.Model):
   processed_at = models.DateTimeField(auto_now_add=True)
   
   def __str__(self):
-    return self.event.event_kind
+    return f'{self.event.event_kind}'

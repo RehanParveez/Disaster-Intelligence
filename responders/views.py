@@ -6,11 +6,18 @@ from responders.services import register_respon, set_avail
 from rest_framework.response import Response
 from responders.serializers.detail import ResponderSerializer, ShiftSerializer, CapabilitySerializer
 from Disaster_Intelligence.core.permissions import FieldOperationPermission, ReadOnlyPublicPermission
+from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework.filters import OrderingFilter
 
 class ResponderViewSet(viewsets.ModelViewSet):
   queryset = Responder.objects.all()
   serializer_class = ResponderSerializer
   permission_classes = [FieldOperationPermission]
+  filter_backends = [DjangoFilterBackend, OrderingFilter]
+  
+  # filtering fields
+  ordering_fields = ['max_load']
+  filterset_fields = ['max_load']
 
   def get_queryset(self):
     user = self.request.user

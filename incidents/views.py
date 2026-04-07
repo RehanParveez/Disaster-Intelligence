@@ -15,6 +15,7 @@ from incidents.services.inc_ser import return_unit_delete
 from execution.services import escalate_incid
 from execution.models import FailureRecord
 from execution.serializers.detail import FailureRecordSerializer
+from analytics.services import calc_record
 
 # Create your views here.
 class IncidentViewset(viewsets.ModelViewSet):
@@ -27,6 +28,11 @@ class IncidentViewset(viewsets.ModelViewSet):
   ordering_fields = ['created_at', 'severity']
   filterset_fields = ['location', 'severity', 'status', 'created_at']
   permission_classes = [FieldOperationPermission]
+  
+  def perform_update(self, serializer):
+    instance = serializer.save()
+    if instance.status == 'resolved':  
+      calc_record(instance.id)
   
   def get_queryset(self):
     user = self.request.user

@@ -5,12 +5,19 @@ from scheduler.models import IncidentList, Cycle, DecisionRecord
 from scheduler.services import run_cycle
 from scheduler.serializers.detail import IncidentListSerializer, CycleSerializer, DecisionRecordSerializer
 from Disaster_Intelligence.core.permissions import RoleBasedPermission
+from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework.filters import OrderingFilter
 
 class SchedulerViewSet(viewsets.ViewSet):
   serializer_class = CycleSerializer
   queryset = Cycle.objects.all()
   permission_classes = [RoleBasedPermission]
   allowed_roles = ['admin', 'authority']
+  filter_backends = [DjangoFilterBackend, OrderingFilter]
+  
+  # filtering fields
+  ordering_fields = ['started_at', 'completed_at']
+  filterset_fields = ['started_at']
   
   def get_queryset(self):
       user = self.request.user
