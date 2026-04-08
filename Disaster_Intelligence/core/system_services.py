@@ -2,6 +2,7 @@ from analytics.models import ResponseRecord, ResourceEfficiency, ResponderPerfor
 from incidents.models import Incident
 from analytics.services import calc_record
 from django.db.models import Count
+from django.core.cache import cache
 
 def recal_all_analy():
   ResponseRecord.objects.all().delete()
@@ -14,6 +15,11 @@ def recal_all_analy():
   return {'processed_incidents': resolved_incids.count()}
 
 def rebalance_resos():
+  cache_key = 'system_rebalance_data'
+  cached_data = cache.get(cache_key)
+  if cached_data:
+    return cached_data
+
   critical_unserved = Incident.objects.filter(severity__gte=4, status = 'verified'
   ).annotate(num_allocs=Count('allocations')).filter(num_allocs=0)
 
@@ -25,4 +31,6 @@ def rebalance_resos():
     suggess.append({'incident_id': incid.id, 'title': incid.title, 'alert': 'CRITICAL_GAPS_FOUND',
       'recommendation': 'move the units from low-prior p/t to this incid.'})
       
-  return {'critical_gaps': suggess, 'over_served_count': over_served.count()}
+  res = {'critical_gaps': suggess, 'over_served_count': over_served.count()}
+  cache.set(cache_key, res, 30)
+  return res

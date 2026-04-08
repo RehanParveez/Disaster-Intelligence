@@ -28,14 +28,12 @@ def calc_record(incident_id):
 
   for responder in incident.assigned_responders.all():
     perf, _ = ResponderPerformance.objects.get_or_create(responder=responder)
-    perf.incid_handl += 1
     success_count = Execution.objects.filter(incident=incident, status = 'success').count()
     perf.succ_exec += success_count
     perf.save()
 
   for alloc in incident.allocations.all():
     eff, _ = ResourceEfficiency.objects.get_or_create(unit=alloc.unit, reso_kind=alloc.unit.kind)
-    eff.alloca_count += 1
     if Execution.objects.filter(incident=incident, status = 'failed').exists():
       eff.failure_count += 1
     eff.save()

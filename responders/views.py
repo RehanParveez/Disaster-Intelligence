@@ -8,6 +8,7 @@ from responders.serializers.detail import ResponderSerializer, ShiftSerializer, 
 from Disaster_Intelligence.core.permissions import FieldOperationPermission, ReadOnlyPublicPermission
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import OrderingFilter
+from django.core.cache import cache
 
 class ResponderViewSet(viewsets.ModelViewSet):
   queryset = Responder.objects.all()
@@ -21,15 +22,23 @@ class ResponderViewSet(viewsets.ModelViewSet):
 
   def get_queryset(self):
     user = self.request.user
+    cache_key = f'resp_list_user_{user.id}'
+    cached_query = cache.get(cache_key)
+    if cached_query is not None:
+      return cached_query
+  
     if user.is_admin:
-      return self.queryset
-            
-    role = user.profile.control
-    if role == 'authority':
-      return self.queryset
-    if role == 'responder':
-      return self.queryset.filter(user=user)
-    return self.queryset.none()
+      check = self.queryset
+    else:  
+      role = user.profile.control
+      if role == 'authority':
+        check = self.queryset
+      elif role == 'responder':
+        check = self.queryset.filter(user=user)
+      else:
+        check = self.queryset.none()
+    cache.set(cache_key, check, 150)
+    return check
 
   @action(detail=False, methods=['post'])
   def register(self, request):

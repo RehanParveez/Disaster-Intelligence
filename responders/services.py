@@ -1,6 +1,7 @@
 from django.db import transaction
 from django.core.exceptions import ValidationError
 from responders.models import Responder, Capability, Shift
+from django.core.cache import cache
 
 @transaction.atomic
 def register_respon(user, data):
@@ -39,4 +40,5 @@ def set_avail(responder_id, schedule):
   if cover:
     raise ValidationError('the shift covers the pres. schedule')
   shift = Shift.objects.create(responder=respon, start_time=start_time, end_time=end_time)
+  cache.clear()
   return shift

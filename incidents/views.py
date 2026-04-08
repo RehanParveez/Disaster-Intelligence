@@ -16,6 +16,9 @@ from execution.services import escalate_incid
 from execution.models import FailureRecord
 from execution.serializers.detail import FailureRecordSerializer
 from analytics.services import calc_record
+from django.core.cache import cache
+from django.utils.decorators import method_decorator
+from django.views.decorators.cache import cache_page
 
 # Create your views here.
 class IncidentViewset(viewsets.ModelViewSet):
@@ -37,25 +40,30 @@ class IncidentViewset(viewsets.ModelViewSet):
   def get_queryset(self):
     user = self.request.user
     role = user.profile.control
+    
+    cache_key = f'incid_list_user_{user.id}'
+    cached_query = cache.get(cache_key)
+    if cached_query is not None:
+        return cached_query
 
     if user.is_admin:
-      return self.queryset
-    if role == 'authority':
-      return self.queryset
-    if role == 'responder':
+      check = self.queryset
+    elif role == 'authority':
+      check = self.queryset
+    elif role == 'responder':
       verified = self.queryset.filter(status = 'verified')
       own = self.queryset.filter(created_by=user)
       check = verified | own
       check = check.distinct()
-      return check
-    if role == 'citizen':
+    elif role == 'citizen':
       verified = self.queryset.filter(status = 'verified')
       own = self.queryset.filter(created_by=user)
       check = verified | own
       check = check.distinct()
-      return check
-    
-    return self.queryset.none()
+    else:
+      check = self.queryset.none()
+    cache.set(cache_key, check, 50)
+    return check
   
   @action(detail=False, methods=['post'])
   def report(self, request):
@@ -74,9 +82,10 @@ class IncidentViewset(viewsets.ModelViewSet):
     reject_inc(pk, request.user)
     return Response({'message': 'the incid is rejected'})
   
+  @method_decorator(cache_page(60 * 3, key_prefix = 'incid_prior'))
   @action(detail=False, methods=['get'])
   def prior_list(self, request):
-    incidents = Incident.objects.all().order_by('-prior')
+    incidents = self.queryset.order_by('-prior')
     serializer = self.get_serializer(incidents, many=True)
     return Response(serializer.data)
   
@@ -123,6 +132,7 @@ class IncidentViewset(viewsets.ModelViewSet):
     serializer = AllocationDecisionSerializer(decision)
     return Response(serializer.data, status=201)
   
+  @method_decorator(cache_page(60 * 2, key_prefix = 'incid_suggest_reso'))
   @action(detail=True, methods=['get'])
   def suggest_reso(self, request, pk=None):
     incident = self.get_object()
@@ -139,6 +149,7 @@ class IncidentViewset(viewsets.ModelViewSet):
     data = {'units': units_list, 'inventories': invents_list}
     return Response(data, status=200)
   
+  @method_decorator(cache_page(60 * 2, key_prefix = 'incid_suggest_resp'))
   @action(detail=True, methods=['get'])
   def suggest_respon(self, request, pk=None):
     responders = suggest_responders()
@@ -160,6 +171,7 @@ class IncidentViewset(viewsets.ModelViewSet):
     return Response({'message': 'the incid has been escal.', 'new_priority': updated_incid.prior,
       'status': updated_incid.status}, status=200)
    
+  @method_decorator(cache_page(60 * 3, key_prefix = 'incid_failures'))
   @action(detail=True, methods=['get'])
   def failures(self, request, pk=None):
     incid = self.get_object()

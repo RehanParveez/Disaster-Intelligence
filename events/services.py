@@ -21,8 +21,6 @@ def process_event(event_id):
 
     if kind == 'EXECUTION_FAILED':
       exec_obj = Execution.objects.get(id=data['execution_id'])
-      from execution.services import handle_failure, escalate_incid  ## passed here due to circular import issue
-      handle_failure(exec_obj)
       User = get_user_model()
       targs = User.objects.filter(profile__control__in=['admin', 'authority'])
       for auth in targs:
@@ -33,6 +31,7 @@ def process_event(event_id):
       was_successful = True
 
     elif kind == 'INCIDENT_ESCALATED':
+      from execution.services import escalate_incid ## passed here due to circular import issue
       incid_obj = Incident.objects.get(id=data['incident_id'])
       reason = data.get('reason', 'Manual Escalation')
         
