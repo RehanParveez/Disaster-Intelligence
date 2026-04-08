@@ -7,6 +7,7 @@ from rest_framework.response import Response
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import SearchFilter, OrderingFilter
 from Disaster_Intelligence.core.permissions import LogisticsPermission, ReadOnlyPublicPermission
+from django.core.cache import cache
 
 # Create your views here.
 class ResourceViewset(viewsets.ModelViewSet):
@@ -30,16 +31,24 @@ class UnitViewset(viewsets.ModelViewSet):
   
   def get_queryset(self):
     user = self.request.user
+    cache_key = f'unit_list_user_{user.id}'
+    cached_query = cache.get(cache_key)
+    if cached_query is not None:
+      return cached_query
+    
     if user.is_admin:
-      return self.queryset
-    role = user.profile.control
-    user_loc = user.profile.location
-
-    if role == 'authority':
-      return self.queryset
-    if role == 'responder':
-      return self.queryset.filter(location=user_loc)
-    return self.queryset.filter(created_by=user)
+      check = self.queryset
+    else:
+      role = user.profile.control
+      user_loc = user.profile.location
+      if role == 'authority':
+        check = self.queryset
+      elif role == 'responder':
+        check = self.queryset.filter(location=user_loc)
+      else:
+        check = self.queryset.filter(created_by=user)
+    cache.set(cache_key, check, 100)
+    return check
   
   def create(self, request):
     unit = create_unit(request.data, request.user)

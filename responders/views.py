@@ -9,6 +9,7 @@ from Disaster_Intelligence.core.permissions import FieldOperationPermission, Rea
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import OrderingFilter
 from django.core.cache import cache
+from responders.selectors import balanced_respons
 
 class ResponderViewSet(viewsets.ModelViewSet):
   queryset = Responder.objects.all()
@@ -68,6 +69,14 @@ class ResponderViewSet(viewsets.ModelViewSet):
       return Response({'error': 'the skill is not pres.'}, status=400)
     respon.skills.add(skill)
     return Response({'message': 'the skill is added'})
+
+  @action(detail=False, methods=['get'])
+  def smart_recommens(self, request):
+    skill_ids = request.query_params.getlist('skills')
+    respon = balanced_respons(required_skills=skill_ids)
+    
+    serializer = self.get_serializer(respon, many=True)
+    return Response(serializer.data)
 
 class CapabilityViewSet(viewsets.ModelViewSet):
   queryset = Capability.objects.all()

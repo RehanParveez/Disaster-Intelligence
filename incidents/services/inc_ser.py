@@ -4,6 +4,8 @@ from incidents.models import Incident, IncidentReport, IncidentGroup, IncidentPr
 from incidents.selectors.inc_sel import nearby_inc, inc_id, group_by_loc
 from incidents.models import AllocationDecision
 from resources.services import return_unit_serv
+from django.utils import timezone
+import datetime
 
 @transaction.atomic
 def inc_report(data, user):
@@ -58,16 +60,48 @@ def group_incid(incident_id):
     incid.save()
     return group
 
-def cal_prior(incident_id):
+def cal_prior(incident_id, reason = 'auto re-eval'):
   incid = Incident.objects.get(id=incident_id)
   prev_prior = incid.prior
-  severity = incid.severity
-  rep_count = incid.reports.count()
-
-  new_prior = (severity * 5) + (rep_count * 2)
-  incid.prior = new_prior
-  incid.save()
-  IncidentPriorRecord.objects.create(incident=incid, prev_prior=prev_prior, new_prior=new_prior, reason = 'manually recalculating')
+  severity = incid.severity * 10
+  rep_count = incid.reports.count() * 2
+  
+  wait_mins = (timezone.now() - incid.created_at).total_seconds() / 60
+  wait_score = (wait_mins // 10) * 5
+  
+  multiplier = 1.0
+  criti_events = ['flood', 'explosion', 'earthquake', 'death', 'fire']
+  criti_locs = ['hospital', 'school', 'bridge', 'plant', 'refinery']
+  
+  title = incid.title.lower()
+  critical_event = False
+  for word in criti_events:
+    if word in title:
+      critical_event = True
+      break
+    
+  location = incid.location.lower()
+  critical_location = False
+  for word in criti_locs:
+    if word in location:
+      critical_location = True
+      break
+    
+  multiplier = 1.0
+  if critical_event:
+    if critical_location:
+      multiplier = 2.0
+    else:
+      multiplier = 1.5
+  else:
+    if critical_location:
+      multiplier = 1.5
+    
+  new_prior = int((severity + rep_count + wait_score) * multiplier)
+  if prev_prior != new_prior:
+    incid.prior = new_prior
+    incid.save()
+    IncidentPriorRecord.objects.create(incident=incid, prev_prior=prev_prior, new_prior=new_prior, reason=reason)
   return incid
 
 @transaction.atomic

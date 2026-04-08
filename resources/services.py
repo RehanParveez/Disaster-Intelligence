@@ -1,5 +1,6 @@
 from resources.models import Resource, Unit, Availability, Consumption, Inventory
 from django.core.exceptions import ValidationError
+from django.core.cache import cache
 
 def create_unit(data, user):
   print('the service is working')
@@ -91,4 +92,5 @@ def update_avail(resource_id, data):
 
   avail.avail_units = pres_avail
   avail.save()
+  cache.clear()
   return avail
