@@ -99,7 +99,8 @@ class IncidentViewset(viewsets.ModelViewSet):
 
     if not unit_id:
       return Response({'err': 'the unit_id is need.'}, status=400)
-    avail = allocate_unit_serv(unit_id=unit_id, inventory_id=inventory_id, user=request.user, reason=reason)
+    
+    avail = allocate_unit_serv(unit_id=unit_id, inventory_id=inventory_id, user=request.user, incident_id=incident.id, reason=reason)
     AllocationDecision.objects.create(unit_id=unit_id, incident=incident, allocated_by=request.user,
      inventory_id=inventory_id, reason=reason)
     

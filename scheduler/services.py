@@ -5,7 +5,8 @@ from responders.models import Responder, Load
 from django.db.models import F
 from scheduler.models import Cycle, IncidentList, DecisionRecord
 from django.utils import timezone
-from execution.models import Execution
+from execution.models import Execution, FailureRecord
+from responders.selectors import balanced_respons
 
 def manual_assign(incident, unit_id, inventory_id, user):
   unit = Unit.objects.filter(id=unit_id)
@@ -37,7 +38,7 @@ def suggest_resources(incident):
 
 def run_cycle():
   cycle = Cycle.objects.create()
-  incidents = Incident.objects.filter(status = 'active')
+  incidents = Incident.objects.filter(status = 'active').order_by('-prior')
   list_data = []
   
   for incid in incidents:
@@ -55,34 +56,63 @@ def run_cycle():
 
   decis_count = 0
   for incid, priority in list_data:
+    selected_unit = None
+    current_avail_obj = None
+    reason_text = 'making alloca. auto.'
     avail = Availability.objects.filter(location=incid.location, avail_units__gt=0)
     avail = avail.first()
-    if not avail:
-      continue
-
-    unit = Unit.objects.filter(kind=avail.res_kind)
-    unit = unit.first()
-    respon = Responder.objects.filter(loads__load_count__lt=F('max_load'))
-    respon = respon.first()
-    if not respon:
-      continue
+    if avail:
+      total_units = avail.total_units
+      avail_units = avail.avail_units
+      scarcity_ratio = 0
+      if total_units > 0:
+        scarcity_ratio = avail_units / total_units
         
-    AllocationDecision.objects.create(incident=incid, unit=unit, allocated_by=None)
-    avail.avail_units -= 1
-    avail.save()
-    load, _ = Load.objects.get_or_create(responder=respon, incident=incid)
-    load.load_count += 1
-    load.save()
+      if scarcity_ratio <= 0.25:
+        if incid.prior < 40:
+          avail = None
+      if avail:
+        u = Unit.objects.filter(kind=avail.res_kind, location=incid.location)
+        u = u.first()
+        if u:
+          selected_unit = u
+          current_avail_obj = avail  
+          
+    if not selected_unit:
+      if priority >= 80:
+        stealable_exec = Execution.objects.filter(status__in=['pending', 'started'], incident__prior__lt=40,
+          unit__location=incid.location).select_related('incident', 'unit').first()
+        if stealable_exec:
+          prev_incid = stealable_exec.incident
+          selected_unit = stealable_exec.unit  
+          stealable_exec.status = 'failed'
+          stealable_exec.save()
+          FailureRecord.objects.create(execution=stealable_exec, reason=f'high prior {incid.id}')
+          reason_text = f'from incid {prev_incid.id}'
+    
+    if selected_unit is not None:
+      respon = balanced_respons()
+      respon = respon.first()    
+      if not respon:
+        continue
+      if current_avail_obj:
+        current_avail_obj.avail_units -= 1
+        current_avail_obj.save()
+        
+      AllocationDecision.objects.create(incident=incid, unit=selected_unit, allocated_by=None)
+      load, _ = Load.objects.get_or_create(responder=respon, incident=incid)
+      load.load_count += 1
+      load.save()
 
-    decision = DecisionRecord.objects.create(cycle=cycle, incident=incid, unit=unit, responder=respon, reason = 'making alloca. auto.')
-    exists = Execution.objects.filter(decision=decision)
-    exists = exists.exists()
-    if not exists:
-      Execution.objects.create(incident=incid, unit=unit, inventory=None, created_by=None, status = 'pending', decision=decision)
-    decis_count += 1
+      decision = DecisionRecord.objects.create(cycle=cycle, incident=incid, unit=selected_unit, responder=respon, reason=reason_text)
+      exists = Execution.objects.filter(decision=decision)
+      exists = exists.exists()
+      if not exists:
+        Execution.objects.create(incident=incid, unit=selected_unit, inventory=None, created_by=None, status = 'pending', decision=decision)
+      decis_count += 1
+    
   cycle.completed_at = timezone.now()
   cycle.total_incids = len(list_data)
   cycle.decis_made = decis_count
   cycle.save()
-
   return cycle

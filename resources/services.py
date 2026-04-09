@@ -1,6 +1,7 @@
 from resources.models import Resource, Unit, Availability, Consumption, Inventory
-from django.core.exceptions import ValidationError
+from rest_framework.exceptions import ValidationError
 from django.core.cache import cache
+from incidents.models import Incident
 
 def create_unit(data, user):
   print('the service is working')
@@ -29,7 +30,7 @@ def create_unit(data, user):
     pres_avail_units=1, created_by=user, reason = 'the unit is created')
   return unit
 
-def allocate_unit_serv(unit_id, inventory_id, user, reason=None):
+def allocate_unit_serv(unit_id, inventory_id, user, incident_id, reason=None):
   unit = Unit.objects.filter(id=unit_id)
   unit = unit.first()
   if not unit:
@@ -42,6 +43,29 @@ def allocate_unit_serv(unit_id, inventory_id, user, reason=None):
   avail = avail.first()
   if not avail:
     raise ValidationError('the avail. is not pres.')
+  
+  incid = Incident.objects.filter(id=incident_id)
+  incid = incid.first()
+  if not incid:
+    raise ValidationError('the incid is not pres.')
+  total_units = avail.total_units
+  avail_units = avail.avail_units
+
+  scarcity_ratio = 0
+  if total_units > 0:
+    scarcity_ratio = avail_units / total_units
+  low_stock = False
+  if scarcity_ratio <= 0.25:
+    low_stock = True
+  
+  low_priority = False
+  if incid.prior < 40:
+    low_priority = True
+  if low_stock:
+    if low_priority:
+      raise ValidationError(f'{int(scarcity_ratio * 100)}% of {unit.kind.name} is rem.'
+        f'cant alloc to incid with prior. {incid.prior}. its for high prior (>40).')
+  
   if avail.avail_units <= 0:
     raise ValidationError('no unit is avail.')
   
@@ -52,6 +76,7 @@ def allocate_unit_serv(unit_id, inventory_id, user, reason=None):
   
   Consumption.objects.create(unit=unit, inventory=invent, change_kind = 'allocated', prev_avail_units=prev_units,
     pres_avail_units=avail.avail_units, created_by=user, reason=reason)
+  cache.clear()
   return avail
 
 def return_unit_serv(unit_id, inventory_id, user, reason=None):
