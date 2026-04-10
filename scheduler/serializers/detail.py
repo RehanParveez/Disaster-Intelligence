@@ -10,7 +10,7 @@ class IncidentListSerializer(serializers.ModelSerializer):
 class CycleSerializer(serializers.ModelSerializer):
   class Meta:
     model = Cycle
-    fields = ['started_at', 'completed_at', 'total_incids', 'decis_made']
+    fields = ['id', 'started_at', 'completed_at', 'total_incids', 'decis_made']
     
 class DecisionRecordSerializer(serializers.ModelSerializer):
   executions = ExecutionSerializer1(many=True, read_only=True)

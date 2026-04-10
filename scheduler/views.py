@@ -47,3 +47,13 @@ class SchedulerViewSet(viewsets.ViewSet):
     data = DecisionRecord.objects.all()
     serializer = DecisionRecordSerializer(data, many=True)
     return Response(serializer.data)
+  
+  @action(detail=False, methods=['get'])
+  def latest(self, request):
+    lat_cycle = Cycle.objects.order_by('-started_at')
+    lat_cycle = lat_cycle.first()
+    
+    if not lat_cycle:
+      return Response({'err': 'no cycle is pres'}, status=404)
+    serializer = self.serializer_class(lat_cycle)
+    return Response(serializer.data)

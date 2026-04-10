@@ -75,6 +75,7 @@ def handle_failure(execution):
 
   IncidentPriorRecord.objects.create(incident=incident, prev_prior=prev_prior, new_prior=incident.prior,
     reason = f'due to fail.exec. the auto escal {execution.id}')
+  FailureRecord.objects.create(execution=execution, reason = 'bcz of fail. auto escal')
   run_sched_cycle.delay()
   return incident
 
